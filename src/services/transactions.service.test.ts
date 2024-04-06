@@ -1,0 +1,89 @@
+import { Transaction } from "../models/Transaction";
+import { TransactionRequest } from "../models/requests/TransactionRequest";
+import {
+  convertTransactions,
+  detectSuspiciousTransactions,
+  separateNegativeTransactions,
+} from "./transactions.service";
+
+describe("Transactions Service", () => {
+  it("separate negative transactions", async () => {
+    const mockTransactions: TransactionRequest[] = [
+      {
+        amount: 100,
+        from: "123",
+        to: "456",
+      },
+      {
+        amount: -100,
+        from: "123",
+        to: "456",
+      },
+    ];
+
+    const result = separateNegativeTransactions(mockTransactions);
+
+    expect(result.transactions).toEqual([mockTransactions[0]]);
+    expect(result.separatedAmount).toBe(1);
+  });
+
+  it("convert transactions", async () => {
+    const mockTransactions: TransactionRequest[] = [
+      {
+        amount: 100,
+        from: "123",
+        to: "456",
+      },
+      {
+        amount: -100,
+        from: "123",
+        to: "456",
+      },
+    ];
+
+    const mockResult: Transaction[] = [mockTransactions[0]].map((a) => ({
+      ...a,
+      suspicious: false,
+    }));
+
+    const result = convertTransactions(mockTransactions);
+
+    expect(result.transactions).toEqual(mockResult);
+    expect(result.separatedAmount).toBe(1);
+  });
+
+  it("separate suspicious transactions", async () => {
+    const mockTransactions: TransactionRequest[] = [
+      {
+        amount: 100,
+        from: "123",
+        to: "456",
+      },
+      {
+        amount: 5000001,
+        from: "123",
+        to: "456",
+      },
+    ];
+
+    const mockResult: Transaction[] = [
+      {
+        amount: 100,
+        from: "123",
+        to: "456",
+        suspicious: false,
+      },
+      {
+        amount: 5000001,
+        from: "123",
+        to: "456",
+        suspicious: true,
+        reason: "suspicious",
+      },
+    ];
+
+    const result = detectSuspiciousTransactions(mockTransactions);
+
+    expect(result).toEqual(mockResult);
+  });
+});
