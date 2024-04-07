@@ -1,38 +1,38 @@
 import { Transaction } from "../models/Transaction";
 import TransactionModel from "../db/schemas/transactionSchema";
+import InvalidTransactionModel from "../db/schemas/invalidTransactionSchema";
 
+// OBS
+// Nesse caso normalmente eu não criaria testes unitarios para a parte de repository já que a camada de service ja trata todos os dados
+// MAS eu criaria para esse cenário de erro no insert ja que para nosso cenário esse comportamento de disparar erro é importante para descobrir os duplicados
 export const uploadTransactions = async (
   transactions: Transaction[]
 ): Promise<InsertedData> => {
-  const transactionsToInsert = buildTransactionsIds(transactions);
-  console.log("INSERT");
-
   const insertedTransactions: Transaction[] = [];
   const notInsertedTransactions: Transaction[] = [];
 
-  console.log("transactionsToInsert: ", transactionsToInsert);
-
-  for (let i = 0; i < transactionsToInsert.length - 1; i++) {
+  for (let i = 0; i < transactions.length - 1; i++) {
     try {
-      await TransactionModel.collection.insertOne(transactionsToInsert[i]);
-      insertedTransactions.push(transactionsToInsert[i]);
+      await TransactionModel.collection.insertOne(transactions[i]);
+      insertedTransactions.push(transactions[i]);
     } catch (err) {
-      notInsertedTransactions.push(transactionsToInsert[i]);
+      notInsertedTransactions.push({
+        ...transactions[i],
+        reason: "duplicated",
+      });
     }
   }
 
   return { insertedTransactions, notInsertedTransactions };
 };
 
-const buildTransactionsIds = (transactions: Transaction[]) => {
-  return transactions.map((transac) => ({
-    ...transac,
-    transaction_id: generateTransactionId(transac),
-  }));
+export const uploadInvalidTransactions = async (
+  transactions: Transaction[]
+): Promise<void> => {
+  for (let i = 0; i <= transactions.length - 1; i++) {
+    await InvalidTransactionModel.collection.insertOne(transactions[i]);
+  }
 };
-
-const generateTransactionId = (transaction: Transaction) =>
-  `${transaction.to}-${transaction.from}-${transaction.amount}`;
 
 export interface InsertedData {
   notInsertedTransactions: Transaction[];

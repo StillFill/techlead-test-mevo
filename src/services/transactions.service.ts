@@ -3,33 +3,44 @@ import { TransactionRequest } from "../models/requests/TransactionRequest";
 
 export const convertTransactions = (
   transactions: TransactionRequest[]
-): Separate<Transaction> => {
-  let finalTransactions = transactions;
-  let invalidAmount = 0;
+): SeparateRaw<Transaction, Transaction> => {
+  let finalTransactions: Transaction[] = transactions;
+  let finalInvalidTransactions: Transaction[] = [];
 
   const negativeSeparation = separateNegativeTransactions(transactions);
 
-  finalTransactions = negativeSeparation.transactions;
-  invalidAmount += negativeSeparation.separatedAmount;
+  finalTransactions = negativeSeparation.validTransactions;
+  finalInvalidTransactions = negativeSeparation.invalidTransactions;
 
   finalTransactions = detectSuspiciousTransactions(finalTransactions);
 
   return {
-    transactions: finalTransactions,
-    separatedAmount: invalidAmount,
+    validTransactions: finalTransactions,
+    invalidTransactions: finalInvalidTransactions,
   };
 };
 
 export const separateNegativeTransactions = (
   transactions: TransactionRequest[]
-): Separate<TransactionRequest> => {
-  const beforeSeparateLength = transactions.length;
+): SeparateRaw<TransactionRequest, Transaction> => {
+  const validTransactions: TransactionRequest[] = [];
+  const invalidTransactions: Transaction[] = [];
 
-  const separatedTransactions = transactions.filter((a) => a.amount > 0);
+  transactions.forEach((transac) => {
+    if (transac.amount > 0) {
+      validTransactions.push(transac);
+    } else {
+      invalidTransactions.push({
+        ...transac,
+        reason: "negative",
+        suspicious: false,
+      });
+    }
+  });
 
   return {
-    transactions: separatedTransactions,
-    separatedAmount: beforeSeparateLength - separatedTransactions.length,
+    validTransactions,
+    invalidTransactions,
   };
 };
 
@@ -51,7 +62,15 @@ export const detectSuspiciousTransactions = (
   return formattedTransactions;
 };
 
+export const generateTransactionId = (transaction: Transaction) =>
+  `${transaction.to}-${transaction.from}-${transaction.amount}`;
+
 export interface Separate<T> {
   transactions: T[];
   separatedAmount: number;
+}
+
+export interface SeparateRaw<T, IT> {
+  validTransactions: T[];
+  invalidTransactions: IT[];
 }

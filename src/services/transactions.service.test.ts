@@ -3,6 +3,7 @@ import { TransactionRequest } from "../models/requests/TransactionRequest";
 import {
   convertTransactions,
   detectSuspiciousTransactions,
+  generateTransactionId,
   separateNegativeTransactions,
 } from "./transactions.service";
 
@@ -23,8 +24,8 @@ describe("Transactions Service", () => {
 
     const result = separateNegativeTransactions(mockTransactions);
 
-    expect(result.transactions).toEqual([mockTransactions[0]]);
-    expect(result.separatedAmount).toBe(1);
+    expect(result.validTransactions).toEqual([mockTransactions[0]]);
+    expect(result.invalidTransactions.length).toBe(1);
   });
 
   it("convert transactions", async () => {
@@ -48,8 +49,8 @@ describe("Transactions Service", () => {
 
     const result = convertTransactions(mockTransactions);
 
-    expect(result.transactions).toEqual(mockResult);
-    expect(result.separatedAmount).toBe(1);
+    expect(result.validTransactions).toEqual(mockResult);
+    expect(result.invalidTransactions.length).toBe(1);
   });
 
   it("separate suspicious transactions", async () => {
@@ -85,5 +86,11 @@ describe("Transactions Service", () => {
     const result = detectSuspiciousTransactions(mockTransactions);
 
     expect(result).toEqual(mockResult);
+  });
+
+  it("generate transaction_id", async () => {
+    const result = generateTransactionId({ to: "A", from: "B", amount: 10 });
+
+    expect(result).toBe("A-B-10");
   });
 });
